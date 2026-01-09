@@ -1,0 +1,33 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import authRoutes from './routes/authRoutes';
+import inventoryRoutes from './routes/inventoryRoutes';
+import vendorRoutes from './routes/vendorRoutes';
+import productRoutes from './routes/productRoutes';
+import saleRoutes from './routes/saleRoutes';
+import customerRoutes from './routes/customerRoutes';
+
+const app = express();
+
+// Middleware
+app.use(helmet());
+app.use(cors());
+app.use(morgan('dev'));
+app.use(express.json());
+
+// Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/inventory', inventoryRoutes);
+app.use('/api/v1/vendors', vendorRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/sales', saleRoutes);
+app.use('/api/v1/customers', customerRoutes);
+
+// Basic Health Check
+app.get('/', (req, res) => {
+    res.json({ message: 'EssenceFlow API is running', timestamp: new Date().toISOString() });
+});
+
+export default app;

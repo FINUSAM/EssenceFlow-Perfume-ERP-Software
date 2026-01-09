@@ -1,0 +1,473 @@
+openapi: 3.0.0
+info:
+  title: EssenceFlow Perfume Lab API
+  description: >
+    API for a sophisticated manufacturing and inventory management system designed for boutique perfumeries.
+    This API handles raw material tracking, SKU formulations, production batch assembly,
+    sales processing, and operational expense tracking with full stock reconciliation logic.
+  version: 1.2.0
+
+servers:
+  - url: /api/v1
+    description: Local development / Mock server
+
+components:
+  schemas:
+    CategoryConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "OIL"
+        unit:
+          type: string
+          example: "ml"
+      required:
+        - name
+        - unit
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          description: Must match a defined classification in BusinessSettings.categories
+        quantity:
+          type: number
+          format: float
+        costPerUnit:
+          type: number
+          format: float
+        minThreshold:
+          type: number
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        vendorId:
+          type: string
+      required:
+        - name
+        - category
+        - quantity
+        - costPerUnit
+        - minThreshold
+
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        leadTime:
+          type: integer
+          description: Standard delivery cycle in days
+      required:
+        - name
+        - email
+        - phone
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        totalSpent:
+          type: number
+          format: float
+      required:
+        - name
+        - email
+        - phone
+
+    RecipeIngredient:
+      type: object
+      properties:
+        oilId:
+          type: string
+          description: Reference to an InventoryItem classification 'OIL'
+        amountMl:
+          type: number
+          format: float
+      required:
+        - oilId
+        - amountMl
+
+    ProductPackaging:
+      type: object
+      properties:
+        itemId:
+          type: string
+          description: Reference to an InventoryItem (Bottle, Box, etc.)
+        quantity:
+          type: integer
+      required:
+        - itemId
+        - quantity
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipeIngredient'
+        packaging:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductPackaging'
+        sellingPrice:
+          type: number
+          format: float
+        totalCost:
+          type: number
+          format: float
+        currentStock:
+          type: integer
+      required:
+        - sku
+        - name
+        - ingredients
+        - packaging
+        - sellingPrice
+
+    PurchaseItem:
+      type: object
+      properties:
+        inventoryItemId:
+          type: string
+        quantity:
+          type: number
+        costPerUnit:
+          type: number
+      required:
+        - inventoryItemId
+        - quantity
+        - costPerUnit
+
+    PurchaseOrder:
+      type: object
+      properties:
+        id:
+          type: string
+        vendorId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseItem'
+        totalAmount:
+          type: number
+        date:
+          type: string
+          format: date-time
+        referenceNumber:
+          type: string
+
+    SaleItem:
+      type: object
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: float
+        total:
+          type: number
+          format: float
+
+    Sale:
+      type: object
+      properties:
+        id:
+          type: string
+        receiptNumber:
+          type: string
+        customerId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SaleItem'
+        subtotal:
+          type: number
+          format: float
+        discount:
+          type: number
+          format: float
+        total:
+          type: number
+          format: float
+        date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [COMPLETED, VOIDED]
+
+    Expense:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+          format: date
+      required:
+        - category
+        - description
+        - amount
+        - date
+
+    Wastage:
+      type: object
+      properties:
+        id:
+          type: string
+        inventoryItemId:
+          type: string
+        amount:
+          type: number
+        reason:
+          type: string
+        cost:
+          type: number
+        date:
+          type: string
+          format: date-time
+
+    BusinessSettings:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        logoUrl:
+          type: string
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryConfig'
+
+paths:
+  /auth/login:
+    post:
+      summary: Protocol Authentication
+      description: Validates administrative credentials for atelier access.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Returns secure user session object
+
+  /inventory:
+    get:
+      summary: Material Vault Inventory
+      description: Retrieves the complete manifest of raw oils and packaging materials.
+    post:
+      summary: Log New Raw Material
+      description: Registers a new material asset into the laboratory vault.
+
+  /inventory/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Update Material Asset
+    delete:
+      summary: Purge Material Record
+      description: Removes material from the vault. Fails if linked to active product formulations.
+
+  /vendors:
+    get:
+      summary: Supply Chain Partners
+    post:
+      summary: Register Supplier
+
+  /vendors/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Update Supplier Profile
+    delete:
+      summary: Remove Supplier Entry
+
+  /customers:
+    get:
+      summary: Atelier Clientele Directory
+    post:
+      summary: Register Client Profile
+
+  /customers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Update Client Profile
+    delete:
+      summary: Remove Client Registry
+
+  /purchases:
+    get:
+      summary: Procurement History
+    post:
+      summary: Execute Restock Manifest
+      description: Increases raw inventory and logs an associated procurement expenditure.
+
+  /purchases/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Void Procurement Order
+      description: Reverses material importation. Fails if materials have already been consumed.
+
+  /products:
+    get:
+      summary: Fragrance Formulation Catalog
+    post:
+      summary: Create New SKU Formulation
+
+  /products/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Refine Formulation Logic
+    delete:
+      summary: Retire SKU from Laboratory
+
+  /products/{id}/produce:
+    post:
+      summary: Assemble Production Batch
+      description: Deducts raw materials from the vault and increments finished shelf stock.
+
+  /products/{id}/adjust:
+    post:
+      summary: Synchronize Shelf Balance
+      description: Adjusts finished units and performs material reconciliation (dismantling if negative).
+
+  /sales:
+    get:
+      summary: Revenue Ledger
+    post:
+      summary: Process Counter Sale
+      description: Deducts finished goods from shelves and updates client lifetime expenditure.
+
+  /sales/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Purge Transaction Record
+      description: Completely removes a voided transaction from history.
+
+  /sales/{id}/void:
+    post:
+      summary: Void Invoice
+      description: Reverses the sale and returns finished goods to the laboratory shelves.
+
+  /expenses:
+    get:
+      summary: Operational Overhead Ledger
+    post:
+      summary: Log Operational Expenditure
+
+  /expenses/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Purge Overhead Record
+
+  /wastage:
+    get:
+      summary: Material Loss Registry
+    post:
+      summary: Record Laboratory Spillage
+      description: Deducts materials from inventory and logs the financial impact of the loss.
+
+  /wastage/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Void Loss Entry
+      description: Purges the loss log and restores material volume back to inventory.
+
+  /settings:
+    get:
+      summary: Atelier Configuration
+    patch:
+      summary: Commit Registry Changes
+      description: Updates core laboratory details including branding and classifications.
+
+  /settings/categories:
+    post:
+      summary: Define Material Classification
+    delete:
+      summary: Remove Material Classification
