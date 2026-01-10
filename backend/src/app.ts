@@ -8,6 +8,11 @@ import vendorRoutes from './routes/vendorRoutes';
 import productRoutes from './routes/productRoutes';
 import saleRoutes from './routes/saleRoutes';
 import customerRoutes from './routes/customerRoutes';
+import expenseRoutes from './routes/expenseRoutes';
+import purchaseRoutes from './routes/purchaseRoutes';
+import wastageRoutes from './routes/wastageRoutes';
+import settingsRoutes from './routes/settingsRoutes';
+import backupRoutes from './routes/backupRoutes';
 import { connectDB } from './config/db';
 
 const app = express();
@@ -16,7 +21,7 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increase API limit for large backups
 
 // Database Connection Middleware for Serverless
 app.use(async (req, res, next) => {
@@ -36,6 +41,11 @@ app.use('/api/v1/vendors', vendorRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/sales', saleRoutes);
 app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/expenses', expenseRoutes);
+app.use('/api/v1/purchases', purchaseRoutes);
+app.use('/api/v1/wastage', wastageRoutes);
+app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/backup', backupRoutes);
 
 // Basic Health Check
 app.get('/', (req, res) => {

@@ -236,24 +236,69 @@ class ApiService {
   // Purchases, Expenses, Wastage, Settings - Not implemented in backend yet or partial.
   // I will keep these as MOCKS or Empty for now to verify main flow, or throw simple errors.
 
-  getPurchases = async () => []; // TODO
-  createPurchase = async (p: any) => { console.warn("Purchasing API not ready"); return p; };
-  deletePurchase = async (id: string) => { };
+  getPurchases = async () => this.fetch<PurchaseOrder[]>('/purchases');
 
-  getExpenses = async () => []; // TODO
-  addExpense = async (e: any) => { return e; };
-  deleteExpense = async (id: string) => { };
+  createPurchase = async (purchase: unknown) => {
+    return this.fetch<PurchaseOrder>('/purchases', {
+      method: 'POST',
+      body: JSON.stringify(purchase),
+    });
+  }
 
-  getWastage = async () => []; // TODO
-  addWastage = async (w: any) => { return w; };
-  deleteWastage = async (id: string) => { };
+  deletePurchase = async (id: string) => {
+    await this.fetch(`/purchases/${id}`, {
+      method: 'DELETE',
+    });
+  }
 
-  getSettings = async () => ({ name: 'EssenceFlow', email: '', categories: [] });
-  updateSettings = async (s: any) => s;
+  getExpenses = async () => this.fetch<Expense[]>('/expenses');
+
+  addExpense = async (expense: Omit<Expense, 'id'>) => {
+    return this.fetch<Expense>('/expenses', {
+      method: 'POST',
+      body: JSON.stringify(expense),
+    });
+  }
+
+  deleteExpense = async (id: string) => {
+    await this.fetch(`/expenses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  getWastage = async () => this.fetch<Wastage[]>('/wastage');
+
+  addWastage = async (wastage: unknown) => {
+    return this.fetch<Wastage>('/wastage', {
+      method: 'POST',
+      body: JSON.stringify(wastage),
+    });
+  }
+
+  deleteWastage = async (id: string) => {
+    await this.fetch(`/wastage/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  getSettings = async () => this.fetch<BusinessSettings>('/settings');
+
+  updateSettings = async (settings: Partial<BusinessSettings>) => {
+    return this.fetch<BusinessSettings>('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+  }
 
   // --- BACKUP ---
-  getBackup = async () => ({});
-  restoreBackup = async () => { };
+  getBackup = async () => this.fetch<any>('/backup');
+
+  restoreBackup = async (data: any) => {
+    return this.fetch<any>('/backup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiService();

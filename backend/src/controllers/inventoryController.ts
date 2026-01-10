@@ -20,21 +20,34 @@ export const createInventoryItem = async (req: Request, res: Response) => {
     try {
         const { name, category, quantity, costPerUnit, minThreshold, batchNumber, expiryDate, vendorId } = req.body;
 
-        const item = new InventoryItem({
+        const inventoryData: any = {
             name,
             category,
             quantity,
             costPerUnit,
             minThreshold,
             batchNumber,
-            expiryDate,
-            vendorId,
-        });
+        };
+
+        // Handle optional fields that might be sent as empty strings
+        if (expiryDate && expiryDate !== '') {
+            inventoryData.expiryDate = expiryDate;
+        }
+
+        if (vendorId && vendorId !== '') {
+            // Only add if it looks like a valid ObjectId (hex string of length 24) to avoid CastError
+            if (/^[0-9a-fA-F]{24}$/.test(vendorId)) {
+                inventoryData.vendorId = vendorId;
+            }
+        }
+
+        const item = new InventoryItem(inventoryData);
 
         const createdItem = await item.save();
         res.status(201).json(createdItem);
-    } catch (error) {
-        res.status(400).json({ message: 'Invalid data' });
+    } catch (error: any) {
+        console.error("Create Inventory Error:", error);
+        res.status(400).json({ message: 'Invalid data', error: error.message });
     }
 };
 
