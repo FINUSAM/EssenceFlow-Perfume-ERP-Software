@@ -13,6 +13,7 @@ import purchaseRoutes from './routes/purchaseRoutes';
 import wastageRoutes from './routes/wastageRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import backupRoutes from './routes/backupRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 import { connectDB } from './config/db';
 
 const app = express();
@@ -46,6 +47,7 @@ app.use('/api/v1/purchases', purchaseRoutes);
 app.use('/api/v1/wastage', wastageRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/backup', backupRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 // Basic Health Check
 app.get('/', (req, res) => {

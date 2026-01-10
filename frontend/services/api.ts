@@ -282,6 +282,10 @@ class ApiService {
 
   getWastage = async () => this.fetch<Wastage[]>('/wastage');
 
+  getDashboardStats = async () => {
+    return this.fetch<any>('/dashboard');
+  }
+
   addWastage = async (wastage: unknown) => {
     return this.fetch<Wastage>('/wastage', {
       method: 'POST',

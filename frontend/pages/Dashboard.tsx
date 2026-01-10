@@ -1,15 +1,25 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api.ts';
-import { InventoryItem, Sale, Expense } from '../types.ts';
+import { InventoryItem } from '../types.ts';
 import { useApp } from '../context/AppContext.tsx';
 
 const Dashboard: React.FC = () => {
   const { businessSettings } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  const [stats, setStats] = useState({
+    revenue: 0,
+    netProfit: 0,
+    expenses: 0,
+    assetValue: 0
+  });
+
+  const [inventory, setInventory] = useState<InventoryItem[]>([]); // Still needed for logic elsewhere?
+  // Actually, lowStock and nearingExpiry are now returned by stats API.
+  const [lowStock, setLowStock] = useState<InventoryItem[]>([]);
+  const [nearingExpiry, setNearingExpiry] = useState<InventoryItem[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   // Custom Modal State
@@ -19,34 +29,24 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [inv, sls, exp] = await Promise.all([
-        api.getInventory(),
-        api.getSales(),
-        api.getExpenses()
-      ]);
-      setInventory(inv);
-      setSales(sls.filter(s => s.status === 'COMPLETED'));
-      setExpenses(exp);
-      setLoading(false);
+      try {
+        const data = await api.getDashboardStats();
+        setStats({
+          revenue: data.revenue,
+          netProfit: data.netProfit,
+          expenses: data.expenses,
+          assetValue: data.assetValue
+        });
+        setLowStock(data.lowStock);
+        setNearingExpiry(data.nearingExpiry);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to load dashboard stats", err);
+        setLoading(false);
+      }
     };
     fetchData();
   }, []);
-
-  const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
-  const totalCOGS = sales.reduce((sum, s) => sum + (s.subtotal * 0.4), 0);
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const netProfit = totalSales - totalCOGS - totalExpenses;
-
-  const assetValue = inventory.reduce((sum, item) => sum + (item.quantity * item.costPerUnit), 0);
-
-  const lowStock = inventory.filter(i => i.quantity <= i.minThreshold);
-  const nearingExpiry = inventory.filter(i => {
-    if (!i.expiryDate) return false;
-    const exp = new Date(i.expiryDate);
-    const threeMonthsAway = new Date();
-    threeMonthsAway.setMonth(threeMonthsAway.getMonth() + 3);
-    return exp <= threeMonthsAway;
-  });
 
   const getUnitForCategory = (categoryName: string) => {
     const cat = businessSettings.categories.find(c => c.name === categoryName);
@@ -123,10 +123,10 @@ const Dashboard: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-        <StatCard title="Net Profit" value={netProfit} icon="💰" color={{ bg: 'from-emerald-50 to-emerald-100/50', text: 'text-emerald-600', pill: 'bg-emerald-50 text-emerald-600' }} />
-        <StatCard title="Revenue" value={totalSales} icon="📈" color={{ bg: 'from-sky-50 to-sky-100/50', text: 'text-sky-600', pill: 'bg-sky-50 text-sky-600' }} />
-        <StatCard title="Asset Value" value={assetValue} icon="🧪" color={{ bg: 'from-gold-50 to-gold-100/50', text: 'text-gold-600', pill: 'bg-gold-50 text-gold-600' }} />
-        <StatCard title="Expenditure" value={totalExpenses} icon="📉" color={{ bg: 'from-rose-50 to-rose-100/50', text: 'text-rose-600', pill: 'bg-rose-50 text-rose-600' }} />
+        <StatCard title="Net Profit" value={stats.netProfit} icon="💰" color={{ bg: 'from-emerald-50 to-emerald-100/50', text: 'text-emerald-600', pill: 'bg-emerald-50 text-emerald-600' }} />
+        <StatCard title="Revenue" value={stats.revenue} icon="📈" color={{ bg: 'from-sky-50 to-sky-100/50', text: 'text-sky-600', pill: 'bg-sky-50 text-sky-600' }} />
+        <StatCard title="Asset Value" value={stats.assetValue} icon="🧪" color={{ bg: 'from-gold-50 to-gold-100/50', text: 'text-gold-600', pill: 'bg-gold-50 text-gold-600' }} />
+        <StatCard title="Expenditure" value={stats.expenses} icon="📉" color={{ bg: 'from-rose-50 to-rose-100/50', text: 'text-rose-600', pill: 'bg-rose-50 text-rose-600' }} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10">
@@ -161,7 +161,7 @@ const Dashboard: React.FC = () => {
                   <div className="w-1.5 h-10 bg-amber-500 rounded-full"></div>
                   <div>
                     <h4 className="font-bold text-amber-900 dark:text-amber-300 text-base leading-tight">{item.name}</h4>
-                    <p className="text-[10px] text-amber-600/70 dark:text-amber-400 font-black uppercase tracking-wider mt-0.5">Expiry Horizon: {item.expiryDate}</p>
+                    <p className="text-[10px] text-amber-600/70 dark:text-amber-400 font-black uppercase tracking-wider mt-0.5">Expiry Horizon: {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A'}</p>
                   </div>
                 </div>
                 <button className="w-full sm:w-auto text-[9px] font-black uppercase tracking-[0.2em] text-amber-700 bg-white dark:bg-slate-800 px-6 py-2.5 rounded-2xl shadow-sm border border-amber-100 dark:border-amber-900/50">Audit</button>
