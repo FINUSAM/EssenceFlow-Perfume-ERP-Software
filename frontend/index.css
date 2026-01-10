@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-gold-50: #fbf9f1;
+  --color-gold-100: #f4f0db;
+  --color-gold-200: #e9dfb3;
+  --color-gold-300: #d9c67f;
+  --color-gold-400: #cca851;
+  --color-gold-500: #b88e3a;
+  --color-gold-600: #a0742e;
+  --color-gold-700: #805927;
+  --color-gold-800: #694925;
+  --color-gold-900: #5a3f23;
+  --color-gold-950: #342111;
+
+  --color-luxury-black: #050505;
+  --color-luxury-cream: #fdfcf8;
+
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+
+  --animate-fadeIn: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-scaleUp: scaleUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-pulseSubtle: pulseSubtle 3s ease-in-out infinite;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleUp {
+    0% {
+      transform: scale(0.96);
+      opacity: 0;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulseSubtle {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.7;
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply antialiased text-slate-900 bg-luxury-cream;
+  }
+}
