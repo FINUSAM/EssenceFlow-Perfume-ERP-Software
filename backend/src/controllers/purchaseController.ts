@@ -82,3 +82,46 @@ export const deletePurchase = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+// @desc    Update a purchase
+// @route   PATCH /api/v1/purchases/:id
+// @access  Private
+export const updatePurchase = async (req: Request, res: Response) => {
+    try {
+        const purchase = await Purchase.findById(req.params.id);
+
+        if (purchase) {
+            // 1. Revert Inventory Stock (Deduct old items)
+            for (const pItem of purchase.items) {
+                const invItem = await InventoryItem.findById(pItem.inventoryItemId);
+                if (invItem) {
+                    invItem.quantity = Math.max(0, (invItem.quantity || 0) - Number(pItem.quantity));
+                    await invItem.save();
+                }
+            }
+
+            // 2. Update Purchase Fields
+            purchase.vendorId = req.body.vendorId || purchase.vendorId;
+            purchase.items = req.body.items || purchase.items;
+            purchase.totalAmount = req.body.totalAmount || purchase.totalAmount;
+            purchase.date = req.body.date || purchase.date;
+            purchase.referenceNumber = req.body.referenceNumber || purchase.referenceNumber;
+
+            // 3. Apply New Inventory Stock (Add new items)
+            for (const pItem of purchase.items) {
+                const invItem = await InventoryItem.findById(pItem.inventoryItemId);
+                if (invItem) {
+                    invItem.quantity = (invItem.quantity || 0) + Number(pItem.quantity);
+                    await invItem.save();
+                }
+            }
+
+            const updatedPurchase = await purchase.save();
+            res.json(updatedPurchase);
+        } else {
+            res.status(404).json({ message: 'Purchase not found' });
+        }
+    } catch (error: any) {
+        console.error("Update Purchase Error:", error);
+        res.status(400).json({ message: 'Invalid data', error: error.message });
+    }
+};

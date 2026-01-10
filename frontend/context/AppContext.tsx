@@ -25,7 +25,10 @@ export const useApp = () => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('essence_theme') === 'dark';
@@ -67,10 +70,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider 
-      value={{ 
-        user, setUser, currentPage, setCurrentPage, darkMode, toggleDarkMode, 
-        businessSettings, updateBusinessSettings 
+    <AppContext.Provider
+      value={{
+        user, setUser, currentPage, setCurrentPage, darkMode, toggleDarkMode,
+        businessSettings, updateBusinessSettings
       }}
     >
       {children}

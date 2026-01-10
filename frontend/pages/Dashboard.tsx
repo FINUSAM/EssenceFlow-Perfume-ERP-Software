@@ -11,7 +11,7 @@ const Dashboard: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Custom Modal State
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [pendingBackupData, setPendingBackupData] = useState<any>(null);
@@ -36,7 +36,7 @@ const Dashboard: React.FC = () => {
   const totalCOGS = sales.reduce((sum, s) => sum + (s.subtotal * 0.4), 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const netProfit = totalSales - totalCOGS - totalExpenses;
-  
+
   const assetValue = inventory.reduce((sum, item) => sum + (item.quantity * item.costPerUnit), 0);
 
   const lowStock = inventory.filter(i => i.quantity <= i.minThreshold);
@@ -133,7 +133,7 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-[2.5rem] shadow-xl border border-white dark:border-slate-800">
           <h2 className="text-xl md:text-2xl font-serif font-bold mb-6 md:mb-8 flex items-center gap-4 text-slate-900 dark:text-white">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gold-50 dark:bg-slate-800 flex items-center justify-center text-gold-600">
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" /></svg>
             </div>
             Stock Alerts
           </h2>
@@ -144,7 +144,7 @@ const Dashboard: React.FC = () => {
               </div>
             )}
             {lowStock.map(item => (
-              <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 md:p-6 bg-red-50/30 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-3xl transition-all">
+              <div key={item._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 md:p-6 bg-red-50/30 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-3xl transition-all">
                 <div className="flex gap-4 items-center mb-4 sm:mb-0">
                   <div className="w-1.5 h-10 bg-red-500 rounded-full"></div>
                   <div>
@@ -156,7 +156,7 @@ const Dashboard: React.FC = () => {
               </div>
             ))}
             {nearingExpiry.map(item => (
-              <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 md:p-6 bg-amber-50/30 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-3xl transition-all">
+              <div key={item._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 md:p-6 bg-amber-50/30 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-3xl transition-all">
                 <div className="flex gap-4 items-center mb-4 sm:mb-0">
                   <div className="w-1.5 h-10 bg-amber-500 rounded-full"></div>
                   <div>
@@ -172,12 +172,12 @@ const Dashboard: React.FC = () => {
 
         <div className="bg-slate-900 dark:bg-slate-950 p-8 md:p-10 rounded-[2.5rem] shadow-2xl flex flex-col justify-between relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-4 -translate-y-4 scale-150 transition-transform group-hover:scale-[1.6]">
-             <svg className="w-24 md:w-32 h-24 md:h-32 text-gold-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/></svg>
+            <svg className="w-24 md:w-32 h-24 md:h-32 text-gold-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" /></svg>
           </div>
           <div className="relative z-10">
             <h2 className="text-2xl font-serif font-bold mb-2 text-white">System Stock</h2>
             <p className="text-slate-400 text-sm mb-8 leading-relaxed">Secure state management and laboratory data exports.</p>
-            
+
             <div className="space-y-4">
               <button onClick={handleExportJson} className="w-full flex items-center justify-between p-5 bg-white/10 border border-white/10 rounded-[1.5rem] hover:bg-gold-500 hover:border-gold-400 transition-all group">
                 <span className="text-xs font-bold text-white uppercase tracking-widest">Master Backup</span>
@@ -199,15 +199,15 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-white/10 relative z-10">
-             <div className="flex items-center gap-4">
-               <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-gold-400">
-                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-               </div>
-               <div>
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Infrastructure</p>
-                 <p className="text-xs font-bold text-white">Synced & Secured</p>
-               </div>
-             </div>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-gold-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div>
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Infrastructure</p>
+                <p className="text-xs font-bold text-white">Synced & Secured</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

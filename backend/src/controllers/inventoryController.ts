@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
 import InventoryItem from '../models/InventoryItem';
+import Product from '../models/Product';
+import { Request, Response } from 'express';
 
 // @desc    Get all inventory items
 // @route   GET /api/v1/inventory
@@ -81,18 +82,32 @@ export const updateInventoryItem = async (req: Request, res: Response) => {
 // @desc    Delete an inventory item
 // @route   DELETE /api/v1/inventory/:id
 // @access  Private
+// @desc    Delete an inventory item
+// @route   DELETE /api/v1/inventory/:id
+// @access  Private
 export const deleteInventoryItem = async (req: Request, res: Response) => {
     try {
         const item = await InventoryItem.findById(req.params.id);
 
         if (item) {
-            // TODO: Check if item is used in any Product (Recipe) before deleting
+            // Check dependency in Products
+            const usedInIngredients = await Product.findOne({ 'ingredients.inventoryItemId': item._id });
+            const usedInPackaging = await Product.findOne({ 'packaging.inventoryItemId': item._id });
+
+            if (usedInIngredients || usedInPackaging) {
+                res.status(400).json({
+                    message: `Cannot delete '${item.name}' because it is used in a product formulation (${usedInIngredients?.name || usedInPackaging?.name}). Remove it from the formulation first.`
+                });
+                return;
+            }
+
             await item.deleteOne();
             res.json({ message: 'Item removed' });
         } else {
             res.status(404).json({ message: 'Item not found' });
         }
     } catch (error) {
+        console.error("Delete Error:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 };

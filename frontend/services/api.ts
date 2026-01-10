@@ -245,6 +245,13 @@ class ApiService {
     });
   }
 
+  updatePurchase = async (id: string, updates: Partial<PurchaseOrder>) => {
+    return this.fetch<PurchaseOrder>(`/purchases/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
   deletePurchase = async (id: string) => {
     await this.fetch(`/purchases/${id}`, {
       method: 'DELETE',
@@ -260,6 +267,13 @@ class ApiService {
     });
   }
 
+  updateExpense = async (id: string, updates: Partial<Expense>) => {
+    await this.fetch(`/expenses/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
   deleteExpense = async (id: string) => {
     await this.fetch(`/expenses/${id}`, {
       method: 'DELETE',
@@ -272,6 +286,13 @@ class ApiService {
     return this.fetch<Wastage>('/wastage', {
       method: 'POST',
       body: JSON.stringify(wastage),
+    });
+  }
+
+  updateWastage = async (id: string, updates: Partial<Wastage>) => {
+    return this.fetch<Wastage>(`/wastage/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
     });
   }
 

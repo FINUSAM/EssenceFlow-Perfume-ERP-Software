@@ -8,7 +8,7 @@ import { LOGO_SVG } from '../constants.tsx';
 const Settings: React.FC = () => {
   const { businessSettings, updateBusinessSettings, darkMode, toggleDarkMode } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState({ ...businessSettings });
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
@@ -19,6 +19,7 @@ const Settings: React.FC = () => {
   const [showLogWastage, setShowLogWastage] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editingWastage, setEditingWastage] = useState<Wastage | null>(null);
 
   const [newWastage, setNewWastage] = useState<Omit<Wastage, 'id'>>({
     inventoryItemId: '',
@@ -77,19 +78,21 @@ const Settings: React.FC = () => {
 
   const handleLogWastage = async (e: React.FormEvent) => {
     e.preventDefault();
-    const item = inventory.find(i => i.id === newWastage.inventoryItemId);
-    const cost = item ? item.costPerUnit * newWastage.amount : 0;
-    
-    await api.addWastage({...newWastage, cost});
+    if (editingWastage) {
+      await api.updateWastage(editingWastage._id, {
+        amount: newWastage.amount,
+        reason: newWastage.reason,
+        date: newWastage.date
+        // cost is recalculated on backend
+      });
+    } else {
+      const item = inventory.find(i => i._id === newWastage.inventoryItemId);
+      const cost = item ? item.costPerUnit * newWastage.amount : 0;
+      await api.addWastage({ ...newWastage, cost });
+    }
+
     await fetchWastageData();
-    setShowLogWastage(false);
-    setNewWastage({
-      inventoryItemId: '',
-      amount: 0,
-      reason: 'Spillage during mixing',
-      cost: 0,
-      date: new Date().toISOString()
-    });
+    handleCloseModal();
   };
 
   const executeDeleteWastage = async () => {
@@ -104,6 +107,47 @@ const Settings: React.FC = () => {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleEditWastage = (w: Wastage) => {
+    setEditingWastage(w);
+    setNewWastage({
+      inventoryItemId: w.inventoryItemId as any, // Usually populated, but ID is needed for logic? 
+      // Actually backend populate returns object. Frontend type says inventoryItemId: string.
+      // Wait, if it's populated on get, then w.inventoryItemId is an object.
+      // We need to extract ID if it's an object, or use it if string.
+      // But types say string. The frontend fetchWastageData logic does not manipulate it.
+      // Let's check api.ts again. getWastage calls /wastage.
+      // Backend controller: .populate('inventoryItemId', 'name category costPerUnit').
+      // So on frontend w.inventoryItemId is likely an Object, but TypeScript thinks it's a string (or whatever Wastage type says).
+      // If Type says string, we might have issues accessing ._id on it if we don't cast.
+      // However, for the 'select' value, we need the ID string.
+      // Let's Assume w.inventoryItemId is an object due to populate.
+      // We should check safely.
+      amount: w.amount,
+      reason: w.reason,
+      cost: w.cost,
+      date: typeof w.date === 'string' ? w.date : new Date(w.date).toISOString()
+    });
+    // Fix: We need the ID for the form state.
+    // If populated, w.inventoryItemId is an object { _id: "...", ... }
+    // If not, it's "..."
+    const itemId = (w.inventoryItemId as any)._id || w.inventoryItemId;
+    setNewWastage(prev => ({ ...prev, inventoryItemId: itemId }));
+
+    setShowLogWastage(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowLogWastage(false);
+    setEditingWastage(null);
+    setNewWastage({
+      inventoryItemId: '',
+      amount: 0,
+      reason: 'Spillage during mixing',
+      cost: 0,
+      date: new Date().toISOString()
+    });
   };
 
   const addCategory = () => {
@@ -125,7 +169,9 @@ const Settings: React.FC = () => {
   };
 
   const getUnit = (itemId: string) => {
-    const item = inventory.find(i => i.id === itemId);
+    // If itemId is an object (due to populate), handle that.
+    const idStr = (itemId as any)._id || itemId;
+    const item = inventory.find(i => i._id === idStr);
     if (!item) return 'units';
     const cat = businessSettings.categories.find(c => c.name === item.category);
     return cat?.unit || 'units';
@@ -142,7 +188,7 @@ const Settings: React.FC = () => {
         <div className="space-y-6">
           <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-sm border border-white dark:border-slate-800">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-600 mb-6">Interface Theme</h3>
-            <button 
+            <button
               onClick={toggleDarkMode}
               className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800 transition-all active:scale-95"
             >
@@ -167,7 +213,7 @@ const Settings: React.FC = () => {
               </div>
             </div>
             <div className="absolute top-0 right-0 p-8 opacity-5 transform translate-x-4 -translate-y-4">
-               <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/></svg>
+              <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" /></svg>
             </div>
           </div>
         </div>
@@ -176,7 +222,7 @@ const Settings: React.FC = () => {
           <form onSubmit={handleSavePreferences} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-[3rem] shadow-xl border border-white dark:border-slate-800 space-y-10">
             <div className="space-y-8">
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-600">Brand Identity</h3>
-              
+
               <div className="flex flex-col md:flex-row items-center gap-8 p-6 bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-100 dark:border-slate-800">
                 <div className="shrink-0 relative">
                   <div className="w-24 h-24 md:w-28 md:h-28 rounded-[2rem] bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-center overflow-hidden">
@@ -187,8 +233,8 @@ const Settings: React.FC = () => {
                     )}
                   </div>
                   {formData.logoUrl && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={removeLogo}
                       className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-rose-600 transition-all border-4 border-white dark:border-slate-950"
                     >
@@ -200,20 +246,20 @@ const Settings: React.FC = () => {
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Atelier Signature Asset</h4>
                   <p className="text-[11px] text-slate-500 leading-relaxed font-medium">Upload a PNG or JPG to serve as your laboratory's official branding on invoices and reports.</p>
                   <div className="flex flex-col gap-3 items-center md:items-start pt-1">
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => fileInputRef.current?.click()}
                       className="bg-gold-600 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-gold-500/20 active:scale-95 transition-all"
                     >
                       {formData.logoUrl ? 'Update Brand Logo' : 'Select Brand Logo'}
                     </button>
                     {logoError && <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest">{logoError}</p>}
-                    <input 
+                    <input
                       ref={fileInputRef}
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleLogoUpload} 
-                      className="hidden" 
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
                     />
                   </div>
                 </div>
@@ -222,33 +268,33 @@ const Settings: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Atelier Name</label>
-                  <input 
-                    required 
-                    type="text" 
+                  <input
+                    required
+                    type="text"
                     className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-gold-500 transition-all"
                     value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Admin Email</label>
-                  <input 
-                    required 
-                    type="email" 
+                  <input
+                    required
+                    type="email"
                     className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-gold-500 transition-all"
                     value={formData.email}
-                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Atelier Caption</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="e.g. Fine Fragrance Atelier"
                   className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-gold-500 transition-all"
                   value={formData.caption || ''}
-                  onChange={e => setFormData({...formData, caption: e.target.value})}
+                  onChange={e => setFormData({ ...formData, caption: e.target.value })}
                 />
               </div>
             </div>
@@ -256,8 +302,8 @@ const Settings: React.FC = () => {
             <div className="space-y-8 pt-10 border-t border-slate-100 dark:border-slate-800">
               <div className="flex justify-between items-center">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-600">Material Classification</h3>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={addCategory}
                   className="text-[9px] font-black uppercase tracking-widest text-gold-600 flex items-center gap-2 hover:opacity-70 transition-all"
                 >
@@ -269,7 +315,7 @@ const Settings: React.FC = () => {
                 {formData.categories.map((cat, idx) => (
                   <div key={idx} className="flex gap-4 items-center bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <div className="flex-1">
-                      <input 
+                      <input
                         placeholder="CLASS NAME"
                         className="w-full bg-transparent font-black text-[10px] uppercase tracking-widest outline-none border-none"
                         value={cat.name}
@@ -277,7 +323,7 @@ const Settings: React.FC = () => {
                       />
                     </div>
                     <div className="w-20 border-l border-slate-200 dark:border-slate-800 pl-4">
-                      <input 
+                      <input
                         placeholder="UNIT"
                         className="w-full bg-transparent font-mono font-bold text-xs text-gold-600 outline-none border-none text-right"
                         value={cat.unit}
@@ -293,16 +339,16 @@ const Settings: React.FC = () => {
             </div>
 
             <div className="pt-10 flex items-center gap-6">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isSaving}
                 className="flex-1 bg-gold-600 text-white h-16 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-gold-500/30 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
               >
                 {isSaving ? (
-                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : 'Commit Registry Changes'}
               </button>
-              
+
               {saveStatus === 'SUCCESS' && <div className="text-emerald-500 font-black text-[9px] uppercase tracking-widest animate-fadeIn">Registry Updated</div>}
               {saveStatus === 'ERROR' && <div className="text-rose-500 font-black text-[9px] uppercase tracking-widest animate-fadeIn">Sync Failed</div>}
             </div>
@@ -316,15 +362,15 @@ const Settings: React.FC = () => {
             <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 dark:text-white">Wastage & Spillage Log</h2>
             <p className="text-slate-500 text-xs md:text-sm mt-1 font-medium">Record laboratory spillages to maintain perfect inventory reconciliation.</p>
           </div>
-          <button 
-            onClick={() => setShowLogWastage(true)}
+          <button
+            onClick={() => { setEditingWastage(null); setShowLogWastage(true); }}
             className="w-full md:w-auto bg-rose-600 text-white px-6 md:px-8 py-4 md:py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-500/20 active:scale-95 flex items-center justify-center gap-3"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>
             Log Material Loss
           </button>
         </div>
-        
+
         <div className="hidden md:block overflow-x-auto custom-scrollbar">
           <table className="w-full text-left">
             <thead>
@@ -346,27 +392,37 @@ const Settings: React.FC = () => {
                 </tr>
               )}
               {wastage.map(w => {
-                const item = inventory.find(i => i.id === w.inventoryItemId);
+                // Safe extraction of item details
+                const item = inventory.find(i => i._id === ((w.inventoryItemId as any)._id || w.inventoryItemId));
                 return (
-                  <tr key={w.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all group">
+                  <tr key={w._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all group">
                     <td className="py-6 text-sm font-mono text-slate-500">{new Date(w.date).toLocaleDateString()}</td>
                     <td className="py-6">
                       <div className="font-bold text-slate-900 dark:text-white">{item?.name || 'Unknown material'}</div>
                       <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{item?.category}</div>
                     </td>
                     <td className="py-6 text-sm font-bold text-slate-700 dark:text-slate-300">
-                      {w.amount.toLocaleString()} <span className="text-[10px] opacity-50 uppercase">{getUnit(w.inventoryItemId)}</span>
+                      {w.amount.toLocaleString()} <span className="text-[10px] opacity-50 uppercase">{item ? getUnit(item._id) : ''}</span>
                     </td>
                     <td className="py-6 text-sm font-medium text-slate-600 dark:text-slate-400 italic">"{w.reason}"</td>
                     <td className="py-6 text-right font-mono font-bold text-rose-500">₹{w.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                     <td className="py-6 text-center">
-                      <button 
-                        onClick={() => { setConfirmDeleteId(w.id); }} 
-                        className="p-3 bg-white dark:bg-slate-800 rounded-xl text-slate-300 hover:text-rose-500 transition-all border border-slate-100 dark:border-slate-800 shadow-sm"
-                        title="Delete record and return materials to inventory"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>
-                      </button>
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => handleEditWastage(w)}
+                          className="p-2.5 bg-white dark:bg-slate-800 rounded-xl text-slate-300 hover:text-gold-500 transition-all border border-slate-100 dark:border-slate-800 shadow-sm"
+                          title="Review / Edit Log"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                        <button
+                          onClick={() => { setConfirmDeleteId(w._id); }}
+                          className="p-2.5 bg-white dark:bg-slate-800 rounded-xl text-slate-300 hover:text-rose-500 transition-all border border-slate-100 dark:border-slate-800 shadow-sm"
+                          title="Delete record and return materials to inventory"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -376,50 +432,59 @@ const Settings: React.FC = () => {
         </div>
 
         <div className="md:hidden space-y-4">
-           {wastage.length === 0 ? (
-             <div className="py-10 text-center">
-               <p className="text-slate-400 font-serif italic text-base">No spillages recorded.</p>
-             </div>
-           ) : (
-             wastage.map(w => {
-               const item = inventory.find(i => i.id === w.inventoryItemId);
-               return (
-                 <div key={w.id} className="bg-slate-50/50 dark:bg-slate-950/40 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 relative transition-all active:scale-[0.98]">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-[10px] font-mono text-slate-400">{new Date(w.date).toLocaleDateString()}</p>
-                        <h4 className="font-bold text-slate-900 dark:text-white mt-1">{item?.name || 'Unknown material'}</h4>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{item?.category}</span>
-                      </div>
-                      <button 
-                        onClick={() => { setConfirmDeleteId(w.id); }} 
+          {wastage.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-slate-400 font-serif italic text-base">No spillages recorded.</p>
+            </div>
+          ) : (
+            wastage.map(w => {
+              // Safe extraction
+              const item = inventory.find(i => i._id === ((w.inventoryItemId as any)._id || w.inventoryItemId));
+              return (
+                <div key={w._id} className="bg-slate-50/50 dark:bg-slate-950/40 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 relative transition-all active:scale-[0.98]">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="text-[10px] font-mono text-slate-400">{new Date(w.date).toLocaleDateString()}</p>
+                      <h4 className="font-bold text-slate-900 dark:text-white mt-1">{item?.name || 'Unknown material'}</h4>
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{item?.category}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditWastage(w)}
+                        className="p-2.5 bg-white dark:bg-slate-800 rounded-xl text-slate-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      </button>
+                      <button
+                        onClick={() => { setConfirmDeleteId(w._id); }}
                         className="p-2.5 bg-white dark:bg-slate-800 rounded-xl text-rose-400 shadow-sm border border-slate-100 dark:border-slate-800"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>
                       </button>
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-100 dark:border-slate-800/50 my-2">
-                       <div>
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Loss Volume</p>
-                          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                             {w.amount} <span className="text-[9px] opacity-50 uppercase">{getUnit(w.inventoryItemId)}</span>
-                          </p>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Impact Value</p>
-                          <p className="font-mono font-bold text-rose-500">₹{w.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
-                       </div>
+                  <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-100 dark:border-slate-800/50 my-2">
+                    <div>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Loss Volume</p>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                        {w.amount} <span className="text-[9px] opacity-50 uppercase">{item ? getUnit(item._id) : ''}</span>
+                      </p>
                     </div>
+                    <div className="text-right">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Impact Value</p>
+                      <p className="font-mono font-bold text-rose-500">₹{w.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
 
-                    <div className="pt-2">
-                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Root Cause</p>
-                       <p className="text-xs italic text-slate-600 dark:text-slate-400">"{w.reason}"</p>
-                    </div>
-                 </div>
-               );
-             })
-           )}
+                  <div className="pt-2">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Root Cause</p>
+                    <p className="text-xs italic text-slate-600 dark:text-slate-400">"{w.reason}"</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </section>
 
@@ -434,8 +499,8 @@ const Settings: React.FC = () => {
             <p className="text-slate-500 text-sm mb-8 leading-relaxed">This will purge the wastage log and restore the impacted material quantity back to active inventory stock.</p>
             <div className="flex gap-4">
               <button onClick={() => setConfirmDeleteId(null)} className="flex-1 py-4 text-slate-500 font-black uppercase tracking-widest text-[10px]">Cancel</button>
-              <button 
-                onClick={executeDeleteWastage} 
+              <button
+                onClick={executeDeleteWastage}
                 disabled={isDeleting}
                 className="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg active:scale-95 flex items-center justify-center transition-all"
               >
@@ -449,28 +514,29 @@ const Settings: React.FC = () => {
       {showLogWastage && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4 z-[200]">
           <div className="bg-white dark:bg-slate-900 rounded-t-[3.5rem] sm:rounded-[3rem] p-8 md:p-14 max-w-md w-full shadow-2xl animate-scaleUp text-slate-900 dark:text-white pb-12 sm:pb-14">
-            <h2 className="text-3xl font-serif font-bold mb-1">Spillage Log</h2>
-            <p className="text-slate-400 text-[10px] mb-10 tracking-widest uppercase font-black">Material Loss Reconciliation</p>
+            <h2 className="text-3xl font-serif font-bold mb-1">{editingWastage ? 'Modify Log' : 'Spillage Log'}</h2>
+            <p className="text-slate-400 text-[10px] mb-10 tracking-widest uppercase font-black">{editingWastage ? 'Amend Material Loss Report' : 'Material Loss Reconciliation'}</p>
             <form onSubmit={handleLogWastage} className="space-y-6 text-left">
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Select Impacted Material</label>
-                <select required className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none appearance-none" value={newWastage.inventoryItemId} onChange={e => setNewWastage({...newWastage, inventoryItemId: e.target.value})}>
+                <select disabled={!!editingWastage} required className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none appearance-none disabled:opacity-50" value={newWastage.inventoryItemId} onChange={e => setNewWastage({ ...newWastage, inventoryItemId: e.target.value })}>
                   <option value="">-- Archive Registry --</option>
-                  {inventory.map(i => <option key={i.id} value={i.id}>{i.name} (Stock: {i.quantity})</option>)}
+                  {inventory.map(i => <option key={i._id} value={i._id}>{i.name} (Stock: {i.quantity})</option>)}
                 </select>
+                {editingWastage && <p className="text-[9px] text-amber-500 mt-2 font-bold uppercase tracking-wide">Note: Material selection cannot be changed. Delete and re-create if material is incorrect.</p>}
               </div>
               <div className="relative">
-                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Amount Lost</label>
-                <input required type="number" step="0.001" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white rounded-2xl border border-slate-200 dark:border-slate-800 font-mono font-bold text-lg outline-none" value={newWastage.amount} onChange={e => setNewWastage({...newWastage, amount: parseFloat(e.target.value) || 0})} />
+                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">{editingWastage ? 'Corrected Volume' : 'Amount Lost'}</label>
+                <input required type="number" step="0.001" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white rounded-2xl border border-slate-200 dark:border-slate-800 font-mono font-bold text-lg outline-none" value={newWastage.amount} onChange={e => setNewWastage({ ...newWastage, amount: parseFloat(e.target.value) || 0 })} />
                 <span className="absolute right-5 bottom-4 text-[9px] font-black uppercase text-gold-600 opacity-50">{getUnit(newWastage.inventoryItemId)}</span>
               </div>
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Root Cause Description</label>
-                <input required type="text" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none" value={newWastage.reason} onChange={e => setNewWastage({...newWastage, reason: e.target.value})} />
+                <input required type="text" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none" value={newWastage.reason} onChange={e => setNewWastage({ ...newWastage, reason: e.target.value })} />
               </div>
               <div className="flex flex-col sm:flex-row justify-end gap-4 pt-10 border-t border-slate-50 dark:border-slate-800">
-                <button type="button" onClick={() => setShowLogWastage(false)} className="px-8 py-4 text-slate-400 font-black uppercase tracking-widest text-[10px]">Abort</button>
-                <button type="submit" className="w-full sm:w-auto px-12 py-5 bg-rose-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] shadow-2xl active:scale-95 transition-all">Execute Log</button>
+                <button type="button" onClick={handleCloseModal} className="px-8 py-4 text-slate-400 font-black uppercase tracking-widest text-[10px]">Abort</button>
+                <button type="submit" className="w-full sm:w-auto px-12 py-5 bg-rose-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] shadow-2xl active:scale-95 transition-all">{editingWastage ? 'Amend Record' : 'Execute Log'}</button>
               </div>
             </form>
           </div>

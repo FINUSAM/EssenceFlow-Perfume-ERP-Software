@@ -34,6 +34,30 @@ export const createExpense = async (req: Request, res: Response) => {
     }
 };
 
+// @desc    Update an expense
+// @route   PATCH /api/v1/expenses/:id
+// @access  Private
+export const updateExpense = async (req: Request, res: Response) => {
+    try {
+        const { category, description, amount, date } = req.body;
+        const expense = await Expense.findById(req.params.id);
+
+        if (expense) {
+            expense.category = category || expense.category;
+            expense.description = description || expense.description;
+            expense.amount = amount !== undefined ? amount : expense.amount;
+            expense.date = date || expense.date;
+
+            const updatedExpense = await expense.save();
+            res.json(updatedExpense);
+        } else {
+            res.status(404).json({ message: 'Expense not found' });
+        }
+    } catch (error) {
+        res.status(400).json({ message: 'Invalid data' });
+    }
+};
+
 // @desc    Delete an expense
 // @route   DELETE /api/v1/expenses/:id
 // @access  Private

@@ -8,7 +8,7 @@ const Contacts: React.FC = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [showModal, setShowModal] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -17,7 +17,7 @@ const Contacts: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -80,13 +80,13 @@ const Contacts: React.FC = () => {
     try {
       if (tab === 'VENDORS') {
         if (editingVendor) {
-          await api.updateVendor(editingVendor.id, formData);
+          await api.updateVendor(editingVendor._id, formData);
         } else {
           await api.addVendor(formData as any);
         }
       } else {
         if (editingCustomer) {
-          await api.updateCustomer(editingCustomer.id, formData);
+          await api.updateCustomer(editingCustomer._id, formData);
         } else {
           await api.addCustomer({ name: formData.name, email: formData.email, phone: formData.phone } as any);
         }
@@ -112,24 +112,22 @@ const Contacts: React.FC = () => {
     <div className="space-y-6 md:space-y-8 animate-fadeIn">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 rounded-[2.5rem] shadow-sm border border-gold-100/50 dark:border-slate-800">
         <div className="flex p-1.5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 w-full sm:w-auto">
-          <button 
+          <button
             onClick={() => setTab('VENDORS')}
-            className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
-              tab === 'VENDORS' ? 'bg-gold-600 text-white shadow-lg' : 'text-slate-400 hover:text-gold-600'
-            }`}
+            className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${tab === 'VENDORS' ? 'bg-gold-600 text-white shadow-lg' : 'text-slate-400 hover:text-gold-600'
+              }`}
           >
             Suppliers
           </button>
-          <button 
+          <button
             onClick={() => setTab('CUSTOMERS')}
-            className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
-              tab === 'CUSTOMERS' ? 'bg-gold-600 text-white shadow-lg' : 'text-slate-400 hover:text-gold-600'
-            }`}
+            className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${tab === 'CUSTOMERS' ? 'bg-gold-600 text-white shadow-lg' : 'text-slate-400 hover:text-gold-600'
+              }`}
           >
             Clientele
           </button>
         </div>
-        <button 
+        <button
           onClick={() => setShowModal(true)}
           className="w-full sm:w-auto bg-slate-900 dark:bg-slate-950 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] shadow-xl transition-all active:scale-95"
         >
@@ -140,33 +138,33 @@ const Contacts: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24 md:pb-0">
         {tab === 'VENDORS' ? (
           vendors.map(v => (
-            <div key={v.id} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-sm border border-white dark:border-slate-800 relative transition-all group">
+            <div key={v._id} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-sm border border-white dark:border-slate-800 relative transition-all group">
               <h3 className="text-xl font-serif font-bold mb-6 text-slate-900 dark:text-white leading-tight">{v.name}</h3>
               <div className="space-y-4">
                 <div className="bg-slate-50/50 dark:bg-slate-950/30 p-4 rounded-2xl border border-slate-50 dark:border-slate-800/50">
-                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Email Command</p>
-                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{v.email}</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Email Command</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{v.email}</p>
                 </div>
                 <div className="flex gap-4">
-                   <div className="flex-1 bg-slate-50/50 dark:bg-slate-950/30 p-4 rounded-2xl border border-slate-50 dark:border-slate-800/50">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Direct Phone</p>
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{v.phone}</p>
-                   </div>
-                   <div className="flex-1 bg-gold-50/50 dark:bg-gold-950/10 p-4 rounded-2xl border border-gold-100/50">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-gold-600 mb-1">Lead Horizon</p>
-                      <p className="text-xs font-bold text-gold-700 dark:text-gold-400">{v.leadTime} Days</p>
-                   </div>
+                  <div className="flex-1 bg-slate-50/50 dark:bg-slate-950/30 p-4 rounded-2xl border border-slate-50 dark:border-slate-800/50">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Direct Phone</p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{v.phone}</p>
+                  </div>
+                  <div className="flex-1 bg-gold-50/50 dark:bg-gold-950/10 p-4 rounded-2xl border border-gold-100/50">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-gold-600 mb-1">Lead Horizon</p>
+                    <p className="text-xs font-bold text-gold-700 dark:text-gold-400">{v.leadTime} Days</p>
+                  </div>
                 </div>
               </div>
               <div className="mt-8 flex gap-3 pt-6 border-t border-slate-50 dark:border-slate-800/50">
-                <button 
+                <button
                   onClick={() => handleEditVendor(v)}
                   className="flex-1 bg-slate-50 dark:bg-slate-800 py-3.5 rounded-xl font-black text-[9px] uppercase tracking-widest text-slate-500 hover:text-gold-600 transition-all border border-slate-100 dark:border-slate-700"
                 >
                   Edit Profile
                 </button>
-                <button 
-                  onClick={() => { setConfirmDeleteId(v.id); setDeleteError(null); }}
+                <button
+                  onClick={() => { setConfirmDeleteId(v._id); setDeleteError(null); }}
                   className="p-3 text-rose-300 hover:text-rose-500 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -176,12 +174,12 @@ const Contacts: React.FC = () => {
           ))
         ) : (
           customers.map(c => (
-            <div key={c.id} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-sm border border-white dark:border-slate-800 relative transition-all group">
+            <div key={c._id} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[3rem] shadow-sm border border-white dark:border-slate-800 relative transition-all group">
               <h3 className="text-xl font-serif font-bold mb-6 text-slate-900 dark:text-white leading-tight">{c.name}</h3>
               <div className="space-y-4">
                 <div className="bg-slate-50/50 dark:bg-slate-950/30 p-4 rounded-2xl border border-slate-50 dark:border-slate-800/50">
-                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Contact Email</p>
-                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{c.email}</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Contact Email</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{c.email}</p>
                 </div>
                 <div className="flex justify-between items-center bg-gold-50/50 dark:bg-gold-950/10 p-4 rounded-2xl border border-gold-100/50">
                   <p className="text-[9px] uppercase font-black text-gold-600 dark:text-gold-500 tracking-widest">Lifetime Value</p>
@@ -189,14 +187,14 @@ const Contacts: React.FC = () => {
                 </div>
               </div>
               <div className="mt-8 flex gap-3 pt-6 border-t border-slate-50 dark:border-slate-800/50">
-                <button 
+                <button
                   onClick={() => handleEditCustomer(c)}
                   className="flex-1 bg-slate-50 dark:bg-slate-800 py-3.5 rounded-xl font-black text-[9px] uppercase tracking-widest text-slate-500 hover:text-gold-600 transition-all border border-slate-100 dark:border-slate-700"
                 >
                   Edit Client
                 </button>
-                <button 
-                   onClick={() => { setConfirmDeleteId(c.id); setDeleteError(null); }}
+                <button
+                  onClick={() => { setConfirmDeleteId(c._id); setDeleteError(null); }}
                   className="p-3 text-rose-300 hover:text-rose-500 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -240,27 +238,27 @@ const Contacts: React.FC = () => {
             <h2 className="text-3xl font-serif font-bold mb-1">
               {editingVendor || editingCustomer ? 'Update Profile' : 'New Entry'}
             </h2>
-             <p className="text-slate-400 text-[10px] mb-10 tracking-widest uppercase font-black">{tab === 'VENDORS' ? 'Supplier Registry' : 'Client Directory'}</p>
+            <p className="text-slate-400 text-[10px] mb-10 tracking-widest uppercase font-black">{tab === 'VENDORS' ? 'Supplier Registry' : 'Client Directory'}</p>
             <form onSubmit={handleSave} className="space-y-6">
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Legal Identity</label>
-                <input required type="text" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <input required type="text" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
               </div>
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Electronic Mail</label>
-                <input required type="email" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <input required type="email" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
               </div>
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Direct Voice Line</label>
-                <input required type="text" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                <input required type="text" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
               </div>
               {tab === 'VENDORS' && (
                 <div>
                   <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Est. Delivery Cycle (Days)</label>
-                  <input required type="number" min="0" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-mono font-bold text-sm outline-none" value={formData.leadTime} onChange={e => setFormData({...formData, leadTime: parseInt(e.target.value) || 0})} />
+                  <input required type="number" min="0" className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-mono font-bold text-sm outline-none" value={formData.leadTime} onChange={e => setFormData({ ...formData, leadTime: parseInt(e.target.value) || 0 })} />
                 </div>
               )}
-              
+
               {formError && (
                 <div className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 dark:border-rose-900/30">
                   {formError}

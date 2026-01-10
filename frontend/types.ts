@@ -6,7 +6,7 @@ export interface CategoryConfig {
 }
 
 export interface InventoryItem {
-  id: string;
+  _id: string;
   name: string;
   category: string;
   quantity: number; // Unit depends on category config
@@ -18,7 +18,7 @@ export interface InventoryItem {
 }
 
 export interface Vendor {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   phone: string;
@@ -26,7 +26,7 @@ export interface Vendor {
 }
 
 export interface Customer {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   phone: string;
@@ -34,17 +34,17 @@ export interface Customer {
 }
 
 export interface RecipeIngredient {
-  oilId: string;
-  amountMl: number;
+  inventoryItemId: string;
+  amount: number;
 }
 
 export interface ProductPackaging {
-  itemId: string;
-  quantity: number;
+  inventoryItemId: string;
+  amount: number;
 }
 
 export interface Product {
-  id: string;
+  _id: string;
   sku: string;
   name: string;
   ingredients: RecipeIngredient[];
@@ -62,7 +62,7 @@ export interface SaleItem {
 }
 
 export interface Sale {
-  id: string;
+  _id: string;
   receiptNumber: string;
   customerId: string;
   items: SaleItem[];
@@ -74,7 +74,7 @@ export interface Sale {
 }
 
 export interface Expense {
-  id: string;
+  _id: string;
   category: string;
   description: string;
   amount: number;
@@ -82,7 +82,7 @@ export interface Expense {
 }
 
 export interface Wastage {
-  id: string;
+  _id: string;
   inventoryItemId: string;
   amount: number;
   reason: string;
@@ -97,7 +97,7 @@ export interface PurchaseItem {
 }
 
 export interface PurchaseOrder {
-  id: string;
+  _id: string;
   vendorId: string;
   items: PurchaseItem[];
   totalAmount: number;
@@ -106,7 +106,7 @@ export interface PurchaseOrder {
 }
 
 export interface User {
-  id: string;
+  _id: string;
   email: string;
   role: 'ADMIN' | 'MANAGER';
 }

@@ -53,6 +53,51 @@ export const logWastage = async (req: Request, res: Response) => {
     }
 };
 
+// @desc    Update wastage record
+// @route   PATCH /api/v1/wastage/:id
+// @access  Private
+export const updateWastage = async (req: Request, res: Response) => {
+    try {
+        const { amount, reason, date } = req.body;
+        const wastage = await Wastage.findById(req.params.id);
+
+        if (!wastage) {
+            res.status(404).json({ message: 'Wastage record not found' });
+            return;
+        }
+
+        const invItem = await InventoryItem.findById(wastage.inventoryItemId);
+        if (!invItem) {
+            res.status(404).json({ message: 'Associated inventory item not found' });
+            return;
+        }
+
+        // 1. Revert previous impact
+        invItem.quantity = (invItem.quantity || 0) + wastage.amount;
+
+        // 2. Apply new impact (if amount changed)
+        const newAmount = amount !== undefined ? amount : wastage.amount; // Use new amount or keep old
+        invItem.quantity = Math.max(0, invItem.quantity - newAmount);
+
+        // Recalculate cost
+        const newCost = (invItem.costPerUnit || 0) * newAmount;
+
+        await invItem.save();
+
+        // 3. Update Wastage Record
+        wastage.amount = newAmount;
+        wastage.cost = newCost;
+        if (reason) wastage.reason = reason;
+        if (date) wastage.date = date;
+
+        const updatedWastage = await wastage.save();
+        res.json(updatedWastage);
+
+    } catch (error) {
+        res.status(400).json({ message: 'Invalid data' });
+    }
+};
+
 // @desc    Delete wastage record (Reverse inventory reduction?)
 // @route   DELETE /api/v1/wastage/:id
 // @access  Private
