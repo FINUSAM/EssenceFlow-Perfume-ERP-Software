@@ -8,6 +8,7 @@ import vendorRoutes from './routes/vendorRoutes';
 import productRoutes from './routes/productRoutes';
 import saleRoutes from './routes/saleRoutes';
 import customerRoutes from './routes/customerRoutes';
+import { connectDB } from './config/db';
 
 const app = express();
 
@@ -16,6 +17,17 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
+
+// Database Connection Middleware for Serverless
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        console.error('Database connection failed:', error);
+        next(error);
+    }
+});
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
