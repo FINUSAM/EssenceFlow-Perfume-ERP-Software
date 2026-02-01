@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
 import { Sale, Product, Customer } from '../types.ts';
+import { toBlob } from 'html-to-image';
 import { useApp } from '../context/AppContext.tsx';
 
 const Sales: React.FC = () => {
@@ -26,7 +27,12 @@ const Sales: React.FC = () => {
 
   const fetchData = async () => {
     const [s, p, c] = await Promise.all([api.getSales(), api.getProducts(), api.getCustomers()]);
-    setSales(s.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setSales(s.sort((a, b) => {
+      if (a.status === b.status) {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+      return a.status === 'COMPLETED' ? -1 : 1;
+    }));
     setProducts(p);
     setCustomers(c);
   };
@@ -81,34 +87,67 @@ const Sales: React.FC = () => {
     }
   };
 
-  const handleShareReceipt = async (sale: Sale) => {
-    const customer = customers.find(c => c._id === sale.customerId)?.name || 'Guest';
-    const itemsText = sale.items.map(item => {
-      const prod = products.find(p => p._id === item.productId);
-      return `• ${prod?.name || 'Item'} (x${item.quantity}): ₹${item.total.toLocaleString('en-IN')}`;
-    }).join('\n');
+  const handleShareReceipt = async () => {
+    const receiptElement = document.getElementById('printable-receipt');
+    if (!receiptElement) return;
 
-    const shareContent = `🧾 *SALES INVOICE: ${businessSettings.name.toUpperCase()}*\n\n` +
-      `*Invoice #:* ${sale.receiptNumber}\n` +
-      `*Date:* ${new Date(sale.date).toLocaleDateString()}\n` +
-      `*Client:* ${customer}\n\n` +
-      `*Items:*\n${itemsText}\n\n` +
-      `*Total Amount: ₹${sale.total.toLocaleString('en-IN')}*\n\n` +
-      `_Thank you for choosing ${businessSettings.name} Atelier._`;
+    try {
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Invoice ${sale.receiptNumber} - ${businessSettings.name}`,
-          text: shareContent,
-        });
-      } catch (err) {
-        console.error("Share failed", err);
+      // Filter function to exclude non-printable elements if needed, 
+      // though CSS @media print handles this, html-to-image uses current styles.
+      // We might need to enforce visibility if the element is hidden? 
+      // Actually printable-receipt IS visible in normal view.
+
+      const blob = await toBlob(receiptElement, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2, // High res
+        filter: (node) => {
+          // Exclude elements with 'no-print' class
+          if (node instanceof HTMLElement && node.classList.contains('no-print')) {
+            return false;
+          }
+          return true;
+        }
+      });
+
+      if (!blob) {
+        console.error('Blob generation failed');
+        alert('Failed to generate image blob');
+        return;
       }
-    } else {
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareContent)}`;
-      window.open(whatsappUrl, '_blank');
+
+      const file = new File([blob], `Invoice-${receiptToPrint?.receiptNumber || 'Ref'}.png`, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `Invoice ${receiptToPrint?.receiptNumber}`,
+            text: `Invoice from ${businessSettings.name}`,
+          });
+        } catch (err) {
+          console.error('Share failed', err);
+          fallbackDownload(blob);
+        }
+      } else {
+        console.log('Native share unavailable, falling back to download');
+        fallbackDownload(blob);
+      }
+    } catch (err) {
+      console.error('Image generation failed', err);
+      alert('Error generating receipt image: ' + err);
     }
+  };
+
+  const fallbackDownload = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoice-${receiptToPrint?.receiptNumber || 'Ref'}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -176,7 +215,17 @@ const Sales: React.FC = () => {
             <div className="flex justify-between items-center py-4 border-y border-slate-50 dark:border-slate-800/50 my-5">
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Customer</p>
-                <p className="font-bold text-slate-800 dark:text-slate-200">{customers.find(c => c._id === sale.customerId)?.name || 'Guest'}</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">
+                  {(() => {
+                    if (!sale.customerId) return 'Guest';
+                    // If populated object
+                    if (typeof sale.customerId === 'object' && (sale.customerId as any).name) {
+                      return (sale.customerId as any).name;
+                    }
+                    const customer = customers.find(c => String(c._id) === String(sale.customerId));
+                    return customer ? customer.name : 'Guest';
+                  })()}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Amount</p>
@@ -216,8 +265,8 @@ const Sales: React.FC = () => {
       )}
 
       {receiptToPrint && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-[300] flex flex-col items-center justify-start p-4 md:p-10 animate-fadeIn overflow-y-auto pt-4 md:pt-16 pb-24">
-          <div className="bg-white p-6 md:p-14 max-w-2xl w-full rounded-[2rem] md:rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] border border-slate-100 flex flex-col text-slate-900 relative">
+        <div id="printable-area" className="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-[300] flex flex-col items-center justify-start p-4 md:p-10 animate-fadeIn overflow-y-auto pt-4 md:pt-16 pb-24">
+          <div id="printable-receipt" className="bg-white p-6 md:p-14 max-w-2xl w-full rounded-[2rem] md:rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] border border-slate-100 flex flex-col text-slate-900 relative">
             <div className="flex flex-col md:flex-row justify-between items-center md:items-start border-b-2 border-slate-900 pb-8 md:pb-10 mb-8 md:mb-10 text-center md:text-left gap-6 md:gap-0">
               <div className="flex flex-col md:flex-row items-center gap-4">
                 {businessSettings.logoUrl ? (
@@ -241,8 +290,30 @@ const Sales: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 mb-10">
               <div className="text-center md:text-left">
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Billed To</p>
-                <p className="text-base md:text-lg font-serif font-bold text-slate-900">{customers.find(c => c._id === receiptToPrint.customerId)?.name || 'Walk-in Client'}</p>
-                <p className="text-[10px] md:text-[11px] text-slate-500 font-medium">{customers.find(c => c._id === receiptToPrint.customerId)?.email || 'guest@example.com'}</p>
+                <p className="text-base md:text-lg font-serif font-bold text-slate-900">
+                  {(() => {
+                    if (!receiptToPrint.customerId) return 'Walk-in Client';
+                    // If populated object
+                    if (typeof receiptToPrint.customerId === 'object' && (receiptToPrint.customerId as any).name) {
+                      return (receiptToPrint.customerId as any).name;
+                    }
+                    const customer = customers.find(c => String(c._id) === String(receiptToPrint.customerId));
+                    return customer ? customer.name : 'Walk-in Client';
+                  })()}
+                </p>
+                <p className="text-[10px] md:text-[11px] text-slate-500 font-medium">
+                  {(() => {
+                    if (!receiptToPrint.customerId) return 'guest@example.com';
+
+                    let idToFind = receiptToPrint.customerId;
+                    if (typeof receiptToPrint.customerId === 'object' && (receiptToPrint.customerId as any)._id) {
+                      idToFind = (receiptToPrint.customerId as any)._id;
+                    }
+
+                    const customer = customers.find(c => String(c._id) === String(idToFind));
+                    return customer ? customer.email : 'guest@example.com';
+                  })()}
+                </p>
               </div>
               <div className="text-center md:text-right">
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Billing Date</p>
@@ -314,7 +385,7 @@ const Sales: React.FC = () => {
 
             <div className="mt-10 md:mt-14 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 no-print relative z-10">
               <button
-                onClick={() => handleShareReceipt(receiptToPrint)}
+                onClick={() => handleShareReceipt()}
                 className="col-span-2 md:col-span-2 py-4 md:py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all hover:bg-gold-600"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
