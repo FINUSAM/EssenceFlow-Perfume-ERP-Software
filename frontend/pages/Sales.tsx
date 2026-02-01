@@ -92,23 +92,34 @@ const Sales: React.FC = () => {
     if (!receiptElement) return;
 
     try {
+      const buttons = receiptElement.querySelector('.no-print') as HTMLElement;
+      let originalDisplay = '';
+      if (buttons) {
+        originalDisplay = buttons.style.display;
+        buttons.style.display = 'none';
+      }
 
-      // Filter function to exclude non-printable elements if needed, 
-      // though CSS @media print handles this, html-to-image uses current styles.
-      // We might need to enforce visibility if the element is hidden? 
-      // Actually printable-receipt IS visible in normal view.
+      // Force layout update/read
+      const height = receiptElement.offsetHeight;
+      const width = receiptElement.offsetWidth;
 
       const blob = await toBlob(receiptElement, {
         backgroundColor: '#ffffff',
+        width: width,
+        height: height,
         pixelRatio: 2, // High res
-        filter: (node) => {
-          // Exclude elements with 'no-print' class
-          if (node instanceof HTMLElement && node.classList.contains('no-print')) {
-            return false;
-          }
-          return true;
+        skipFonts: true, // Avoid SecurityError for cross-origin fonts
+        style: {
+          borderRadius: '0',
+          boxShadow: 'none',
+          border: 'none',
+          margin: '0',
         }
       });
+
+      if (buttons) {
+        buttons.style.display = originalDisplay;
+      }
 
       if (!blob) {
         console.error('Blob generation failed');
@@ -334,7 +345,7 @@ const Sales: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-5">
                   {receiptToPrint.items.map((item, idx) => {
-                    const product = products.find(p => p._id === item.productId);
+                    const product = products.find(p => String(p._id) === String(item.productId));
                     return (
                       <tr key={idx} className="flex flex-col md:table-row py-4 md:py-0">
                         <td className="md:py-5 flex-1">
