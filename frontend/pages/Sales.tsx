@@ -372,7 +372,7 @@ const Sales: React.FC = () => {
                   </div>
                   {receiptToPrint.discount > 0 && (
                     <div className="flex justify-between items-center text-sm font-medium text-rose-500">
-                      <span>Courtesy Discount</span>
+                      <span>Discount</span>
                       <span className="font-mono">-₹{receiptToPrint.discount.toLocaleString('en-IN')}</span>
                     </div>
                   )}
@@ -439,6 +439,17 @@ const Sales: React.FC = () => {
                     ))}
                     <button onClick={() => setSaleItems([...saleItems, { productId: '', quantity: 1 }])} className="w-full py-5 border-2 border-dashed border-slate-200 dark:border-slate-800/50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Add Line Item</button>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Discount (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full h-14 px-5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-mono font-bold text-sm outline-none"
+                    value={discount}
+                    onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
+                  />
                 </div>
 
                 {errorMessage && (
