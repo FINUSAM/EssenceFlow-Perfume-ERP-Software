@@ -13,7 +13,7 @@ import Purchasing from './pages/Purchasing.tsx';
 import Sidebar from './components/Sidebar.tsx';
 
 const AppContent: React.FC = () => {
-  const { user, setUser, currentPage, setCurrentPage, darkMode, toggleDarkMode, businessSettings } = useApp();
+  const { user, setUser, logout, currentPage, setCurrentPage, darkMode, toggleDarkMode, businessSettings } = useApp();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (!user) {
@@ -44,7 +44,7 @@ const AppContent: React.FC = () => {
       <div className="hidden md:flex">
         <Sidebar />
       </div>
-      
+
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="flex md:hidden items-center justify-between p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gold-100/50 dark:border-slate-800 z-30">
           <h1 className="text-xl font-serif font-bold text-gold-600 truncate max-w-[150px]">
@@ -54,7 +54,7 @@ const AppContent: React.FC = () => {
             <button onClick={toggleDarkMode} className="p-2 text-slate-400">
               {darkMode ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 110 8 4 4 0 010-8z" /></svg> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>}
             </button>
-            <button onClick={() => setUser(null)} className="text-[10px] font-black uppercase tracking-widest bg-gold-600 text-white px-3 py-1.5 rounded-lg shadow-sm">
+            <button onClick={logout} className="text-[10px] font-black uppercase tracking-widest bg-gold-600 text-white px-3 py-1.5 rounded-lg shadow-sm">
               Signout
             </button>
           </div>
@@ -69,7 +69,7 @@ const AppContent: React.FC = () => {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Authenticated As</p>
               <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{user.email}</p>
             </div>
-            <button onClick={() => setUser(null)} className="p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-slate-100 dark:border-slate-800 hover:text-red-500 transition-all">
+            <button onClick={logout} className="p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-slate-100 dark:border-slate-800 hover:text-red-500 transition-all">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             </button>
           </div>

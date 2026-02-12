@@ -55,7 +55,7 @@ export interface Product {
 }
 
 export interface SaleItem {
-  productId: string;
+  productId: string | Product;
   quantity: number;
   unitPrice: number;
   total: number;

@@ -8,6 +8,7 @@ export type Page = 'dashboard' | 'inventory' | 'purchasing' | 'products' | 'sale
 interface AppContextType {
   user: User | null;
   setUser: (u: User | null) => void;
+  logout: () => void;
   currentPage: Page;
   setCurrentPage: (p: Page) => void;
   darkMode: boolean;
@@ -69,10 +70,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBusinessSettings(updated);
   };
 
+  const logout = () => {
+    api.logout();
+    setUser(null);
+  };
+
   return (
     <AppContext.Provider
       value={{
-        user, setUser, currentPage, setCurrentPage, darkMode, toggleDarkMode,
+        user, setUser, logout, currentPage, setCurrentPage, darkMode, toggleDarkMode,
         businessSettings, updateBusinessSettings
       }}
     >

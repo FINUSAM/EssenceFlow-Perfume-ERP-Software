@@ -9,8 +9,8 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [email, setEmail] = useState('test@test.com');
-  const [password, setPassword] = useState('Test123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +18,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     const user = await api.login(email, password);
     if (user) {
       onLogin(user);
@@ -51,8 +51,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 uppercase tracking-wide">Email Address</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500 outline-none transition-all"
@@ -62,8 +62,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
             <div>
               <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 uppercase tracking-wide">Password</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500 outline-none transition-all"
@@ -78,7 +78,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             )}
 
-            <button 
+            <button
               disabled={loading}
               className="w-full p-4 bg-gold-600 hover:bg-gold-700 text-white font-bold rounded-xl shadow-xl transition-all disabled:opacity-50"
             >

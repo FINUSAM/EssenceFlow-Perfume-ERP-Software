@@ -134,7 +134,7 @@ const Sales: React.FC = () => {
           await navigator.share({
             files: [file],
             title: `Invoice ${receiptToPrint?.receiptNumber}`,
-            text: `Invoice from ${businessSettings.name}`,
+            text: `Thank you for choosing ${businessSettings.name}...`,
           });
         } catch (err) {
           console.error('Share failed', err);
@@ -298,8 +298,8 @@ const Sales: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 mb-10">
-              <div className="text-center md:text-left">
+            <div className="grid grid-cols-2 gap-4 md:gap-10 mb-10">
+              <div className="text-left">
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Billed To</p>
                 <p className="text-base md:text-lg font-serif font-bold text-slate-900">
                   {(() => {
@@ -312,21 +312,9 @@ const Sales: React.FC = () => {
                     return customer ? customer.name : 'Walk-in Client';
                   })()}
                 </p>
-                <p className="text-[10px] md:text-[11px] text-slate-500 font-medium">
-                  {(() => {
-                    if (!receiptToPrint.customerId) return 'guest@example.com';
 
-                    let idToFind = receiptToPrint.customerId;
-                    if (typeof receiptToPrint.customerId === 'object' && (receiptToPrint.customerId as any)._id) {
-                      idToFind = (receiptToPrint.customerId as any)._id;
-                    }
-
-                    const customer = customers.find(c => String(c._id) === String(idToFind));
-                    return customer ? customer.email : 'guest@example.com';
-                  })()}
-                </p>
               </div>
-              <div className="text-center md:text-right">
+              <div className="text-right">
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Billing Date</p>
                 <p className="text-base md:text-lg font-serif font-bold text-slate-900">{new Date(receiptToPrint.date).toLocaleDateString()}</p>
                 <p className="text-[10px] md:text-[11px] text-slate-500 font-medium">Issued: {new Date(receiptToPrint.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
@@ -345,7 +333,13 @@ const Sales: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-5">
                   {receiptToPrint.items.map((item, idx) => {
-                    const product = products.find(p => String(p._id) === String(item.productId));
+                    let product: Product | undefined;
+                    if (typeof item.productId === 'object' && (item.productId as any).name) {
+                      product = item.productId as Product;
+                    } else {
+                      product = products.find(p => String(p._id) === String(item.productId));
+                    }
+
                     return (
                       <tr key={idx} className="flex flex-col md:table-row py-4 md:py-0">
                         <td className="md:py-5 flex-1">
